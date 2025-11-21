@@ -1,178 +1,131 @@
-# Projeto IoT: Totem de Avaliação com ESP32, MQTT e Node-RED
+# Skill Station — Totem de Avaliação (ESP32, MQTT e Web)
 
-## Descrição
+## Visão geral
 
-Este projeto implementa um **Totem de Avaliação de Atendimento** completo, utilizando um **ESP32 simulado no Wokwi** e um **fluxo de dados 100% local**.  
-O sistema captura a avaliação de botões físicos, envia os dados via **MQTT** e os processa no **Node-RED**.
+Projeto de Totem de Avaliação usando um ESP32 (simulado no Wokwi) que:
 
-A simulação é desenvolvida no **Visual Studio Code** com **PlatformIO**.
+-   roda um **servidor web** com tela de login e fluxo de avaliação;
+-   publica **resultados via MQTT** para um broker local;
+-   mostra status em **OLED** e LEDs;
+-   aceita **reset por botão**.
 
----
-
-## Funcionalidades
-
--   **Totem de Avaliação:**  
-    5 botões físicos simulados (Péssimo, Ruim, Regular, Bom, Ótimo) com 5 LEDs de feedback.
-
--   **Painel de Controle Web:**  
-    O ESP32 hospeda um servidor web (`http://localhost:9080`) que permite configurar dinamicamente o Setor e o Local do totem.
-
--   **Comunicação MQTT:**  
-    Ao pressionar um botão, o ESP32 envia um payload JSON para um broker MQTT local (Mosquitto) com os dados da avaliação, o setor configurado e o timestamp.
-
--   **Processamento de Dados:**  
-    Um fluxo Node-RED local se inscreve no broker MQTT, recebe os dados do totem em tempo real e os exibe na aba de depuração.
+O firmware foi escrito para rodar em PlatformIO / Arduino e usa `PubSubClient`, `ArduinoJson` e `U8g2` para o display.
 
 ---
 
-## Arquitetura do Sistema Local
+## Principais recursos implementados
 
-Este protótipo opera inteiramente na sua máquina local:
+-   Servidor web com rotas:
 
-### ESP32 (Simulado no Wokwi)
+    -   `/` — página inicial / login
+    -   `/do-login` — POST para autenticar e guardar token
+    -   `/candidaturas` — lista de candidaturas (usa token)
+    -   `/detalhes?id=...` — detalhes da candidatura
+    -   `/quiz?id=...` — carrega questões e apresenta UI de prova
+    -   `/submit` — envia respostas e publica nota via MQTT
 
--   Coleta os cliques dos botões.
--   Serve o painel de configuração (porta 80).
--   Envia dados para o Broker.
+-   MQTT: publicador para o tópico **2TDS/esp32/skillstation/submission**  
+    Payload JSON inclui `idCandidatura`, `score` e `token`.
 
-### Broker MQTT (Mosquitto)
+-   Tela OLED: exibe título (“Skill Station”), status WiFi, IP e conexão MQTT.
 
--   Roda em `localhost:1883`.
--   Recebe os dados do ESP32 e os distribui para os inscritos.
+-   LEDs:
 
-### Processador (Node-RED)
+    -   LED interno (`boardLED`) → feedback rápido ao publicar score.
+    -   LED externo (`STATUS_LED_PIN`) → indica estado WiFi/MQTT.
 
--   Roda em `localhost:1880`.
--   Se inscreve no Broker e recebe os dados JSON para processamento.
+-   Botão físico `RESET_BTN_PIN`: reinicia via `ESP.restart()`.
 
-### Wokwi IoT Gateway (Ponte)
-
--   Ativado pela extensão Wokwi no VSCode, permite que o ESP32 simulado (`host.wokwi.internal`) se comunique com o seu localhost (Mosquitto).
-
----
-
-## Pré-requisitos
-
-### 1. Software Básico
-
--   Visual Studio Code
--   Node.js (LTS) — necessário para instalar e rodar o Node-RED.
-
-### 2. Extensões do VS Code
-
--   PlatformIO IDE — essencial para compilar e gerenciar o projeto C++ do ESP32.
--   Wokwi for VS Code — executa a simulação do hardware.
-
-### 3. Serviços Locais
-
--   Mosquitto (MQTT Broker)
--   Node-RED
+-   Logs curtos e diretos via Serial (ex.: “WiFi: conectado”, “MQTT: publish -> ok”).
 
 ---
 
-## Instalação e Configuração
+## Hardware (pinos usados)
 
-### Clone o repositório:
+-   `boardLED` = GPIO 2
+-   `STATUS_LED_PIN` = GPIO 25
+-   `RESET_BTN_PIN` = GPIO 32
+-   OLED I2C
+    -   SDA = 21
+    -   SCL = 22
 
-```bash
-git clone https://github.com/mtslma/totem-avaliacao-esp32
+Compatível com Wokwi e hardware real ESP32.
+
+---
+
+## Dependências no PlatformIO
+
+Use no `platformio.ini`:
+
 ```
-
-### Abra no VSCode:
-
-Abra a pasta do projeto no Visual Studio Code  
-(`Arquivo > Abrir Pasta...`).
-
-### Instale as Bibliotecas (PlatformIO):
-
-O PlatformIO deve detectar o arquivo `platformio.ini` e instalar automaticamente as dependências (`PubSubClient`, `ArduinoJson`, `NTPClient`) na primeira compilação.
-
----
-
-### Licença Wokwi (Obrigatória para Rede)
-
-A simulação de rede (Wokwi IoT Gateway), que permite ao ESP32 se conectar ao seu Broker MQTT, requer uma licença.
-
-1. Obtenha sua licença em [https://wokwi.com/license](https://wokwi.com/license) (Planos **Pro** ou **Community**).
-2. No VSCode, pressione `F1`, digite **"Wokwi: Activate License"** e cole sua chave.
-
----
-
-### Instale o Mosquitto
-
-1. Baixe e instale o **Mosquitto** para o seu sistema. [https://mosquitto.org/download/](https://mosquitto.org/download/)
-2. Após a instalação, verifique se ele está rodando como um serviço:
-    - Pressione `Win + R`, digite `services.msc`.
-    - Procure por **"Mosquitto Broker"** e verifique se o status é **"Em Execução"**.
-
----
-
-### Instale o Node-RED
-
-Abra um terminal (PowerShell/CMD) e execute:
-
-```bash
-npm install -g --unsafe-perm node-red
+lib_deps =
+  knolleary/PubSubClient@^2.8
+  bblanchon/ArduinoJson@^6.18
+  olikraus/U8g2@^2.29
 ```
 
 ---
 
-## Como Rodar o Projeto (Passo a Passo)
+## Configurações importantes no `main.cpp`
 
-A ordem de inicialização é importante.
+-   `API_URL` — URL base da API
+-   `LOGIN_ENDPOINT`, `MINHAS_CANDIDATURAS_ENDPOINT`,  
+    `DETALHES_CANDIDATURA_ENDPOINT`, `QUESTOES_ENDPOINT`, `SUBMIT_ENDPOINT`
 
-### **Passo 1: Iniciar os Serviços Locais**
-
--   **Mosquitto:**  
-    Verifique se o serviço (como descrito acima) está "Em Execução".  
-    Se não estiver, inicie-o.
-
--   **Node-RED:**  
-    No seu terminal, execute:
-    ```bash
-    node-red
-    ```
-    Mantenha este terminal aberto.  
-    Ele mostrará que o Node-RED está rodando em [http://127.0.0.1:1880](http://127.0.0.1:1880).
+-   `SSID` e `PASSWORD` — configuração de rede
+-   `BROKER_MQTT` e `BROKER_PORT`
+-   `TOPICO_PUBLISH` — tópico MQTT usado para enviar a nota
 
 ---
 
-### **Passo 2: Configurar o Node-RED**
+## Como rodar o projeto
 
-1. Abra o navegador e acesse [http://127.0.0.1:1880](http://127.0.0.1:1880).
-2. Vá para o **Menu (canto superior direito) > Importar**.
-3. Clique em **"Selecionar arquivo"** e escolha o arquivo `flow.json` localizado na pasta `/node-red` deste projeto.
-4. Clique em **"Importar"** e, em seguida, no botão vermelho **"Deploy"**.
-5. O nó **"MQTT In"** deve mostrar um quadrado **verde ("conectado")** abaixo dele.
+1. Abra no VSCode com PlatformIO.
+2. Compile e faça upload para o ESP32 **ou** use o Wokwi.
+3. Abra o Serial Monitor (115200) para acompanhar logs.
+4. Acesse a interface web do ESP32:
+    - Wokwi → porta indicada no serial (normalmente `http://localhost:9080`).
+5. Faça login.
+6. Acesse candidaturas, inicie a avaliação e envie a prova.
+7. Veja no serial:
 
----
+```
+MQTT: publish -> ok
+HTTP submit: retorno 200
+```
 
-### **Passo 3: Iniciar a Simulação do ESP32**
-
-1. No VSCode, abra a paleta de comandos (`F1` ou `Ctrl+Shift+P`).
-2. Execute o comando **"Wokwi: Start Simulator"**.
-3. Aguarde o Monitor Serial exibir:
-    ```
-    Wi-Fi conectado!
-    ...
-    Conectado ao Broker Local (Mosquitto)!
-    Servidor HTTP iniciado! Acesse http://localhost:9080
-    ```
+Isso garante que a nota foi enviada ao broker e registrada na API.
 
 ---
 
-### **Passo 4: Testar a Solução Completa**
+## Token e autenticação
 
-#### Testar o Web Server:
-
-1. Acesse `http://localhost:9080` no navegador.
-2. Mude o "Nome do Setor" (ex: `Banheiro`) e o "ID/Local" (ex: `Totem_Entrada_02`).
-3. Clique em **"Salvar Configurações"**.
-
-#### Testar o Fluxo MQTT:
-
-1. No simulador Wokwi, clique em um dos botões de avaliação (ex: **"Bom"**).
-2. Observe a aba **"Debug"** (ícone de inseto) no Node-RED.
-3. A mensagem JSON correspondente, já com os novos nomes do Setor/Local, aparecerá instantaneamente.
+-   Após o login, o token é guardado em `currentAccessToken`.
+-   Todas as rotas após o login validam o token antes de prosseguir.
+-   A submissão inclui o token no payload MQTT para fins de auditoria.
 
 ---
+
+## Observações de integração
+
+-   A correção do quiz considera que alternativas corretas são marcadas como `"1"` pela API.
+-   A interface gera um formulário `<input type="radio">` por alternativa.
+-   Backend API deve responder lista de questões no formato esperado.
+
+---
+
+## Arquivos relevantes
+
+-   `src/main.cpp` — firmware principal
+-   `platformio.ini` — dependências e configuração da placa
+-   `README.md` — este documento
+-   `node-red/flow.json` (opcional, se você usa Node-RED no backend)
+
+---
+
+## Melhorias possíveis
+
+-   Persistir configurações em SPIFFS/LittleFS
+-   Reconnect MQTT com backoff
+-   Remover token do payload MQTT se segurança exigir
+-   Logs opcionais via nível de debug
