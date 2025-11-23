@@ -1,4 +1,4 @@
-# Skill Station: Revolução no Recrutamento Ético e Tecnológico
+# Skill Station: Recrutamento Ético e Tecnológico
 
 ## Visão geral
 
