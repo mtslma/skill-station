@@ -154,6 +154,8 @@ Essas libs são usadas para:
 -   JSON (ArduinoJson)
 -   Display OLED (U8g2)
 
+Certifique-se de fazer o build da aplicação por meio da extensão do platform.io antes de executar 
+
 ---
 
 ### Licença Wokwi (Obrigatória para Rede)
