@@ -15,7 +15,9 @@
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 
 // Endpoints e configurações
-const char* API_URL = "http://host.wokwi.internal:8080/api";
+const char* API_URL = "http://host.wokwi.internal:8080/api"; // para testar utilize http://68.211.72.156:8080/api
+// Professor, estou cadastrando esse comentário após o dia da entrega para caso você deseje testar, utilize usuário: ' user@onematter.com ' , senha: ' senhaSegura123 '
+
 const char* LOGIN_ENDPOINT = "/auth/login";
 const char* MINHAS_CANDIDATURAS_ENDPOINT = "/candidato/me/candidaturas";
 const char* DETALHES_CANDIDATURA_ENDPOINT = "/candidato/me/candidaturas/";
